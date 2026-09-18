@@ -1,0 +1,920 @@
+{
+  "name": "Error Hanlding",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -928,
+        0
+      ],
+      "id": "a70456ea-83b2-4e34-8ae0-e1b332928527",
+      "name": "Telegram Trigger",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_BOT_TOKEN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_CLAUDE_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        320
+      ],
+      "id": "111990ac-6624-4295-9033-980b615e3324",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeResponse = $input.first().json.content[0].text;\nconst chatId = parseInt($('Telegram Trigger').first().json.message.chat.id);\n\n// Додаємо відповідь Claude до історії\nconst staticData = $getWorkflowStaticData('global');\nstaticData[`history_${chatId}`].push({\n  role: \"assistant\",\n  content: claudeResponse\n});\n\nreturn [{\n  json: {\n    answer: claudeResponse,\n    chatId: chatId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        320
+      ],
+      "id": "83022df7-ea7b-4651-80bd-a87c5b1855e7",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        496
+      ],
+      "id": "0dae43cc-8636-4e04-9d61-767b5878685f",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $getWorkflowStaticData('global').lastChatId ?? null;\nreturn [{ json: { chatId: Number(chatId) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        496
+      ],
+      "id": "ccff4ff3-3a79-4bf7-adaa-9c5133594112",
+      "name": "Error Code"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "54c08d23-6883-440c-9114-fee1d30ba673"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cfa95fc0-b039-48fd-a07f-ecded19f768a",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/help",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fd34ac1e-dd85-4ae9-bf4c-4b31efe86f1f",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/reset",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b8451b6e-ad14-4e44-b28d-04fa9f528cbb",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "=/image ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        -48
+      ],
+      "id": "ffb8788c-5ea2-453f-bee7-c206cb305ec9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $input.first().json.message.chat.id;\nconst userMessage = $input.first().json.message.text;\n\n// Отримуємо staticData\nconst staticData = $getWorkflowStaticData('global');\n\n// Ініціалізуємо історію для цього chatId якщо її немає\nif (!staticData[`history_${chatId}`]) {\n  staticData[`history_${chatId}`] = [];\n}\n\n// Додаємо повідомлення користувача до історії\nstaticData[`history_${chatId}`].push({\n  role: \"user\",\n  content: userMessage\n});\n\n// Зберігаємо chatId як раніше\nstaticData.lastChatId = chatId;\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        0
+      ],
+      "id": "75995713-2f5b-46ad-b02d-904236cd5195",
+      "name": "Code (Save ChatID)"
+    },
+    {
+      "parameters": {
+        "chatId": "397087078",
+        "text": "={{ $json.answer }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        320
+      ],
+      "id": "65a2435a-3a52-4369-ad37-c26e6d1e1a46",
+      "name": "Send Message",
+      "webhookId": "e696977b-4064-4f05-8ec4-dd6060b5ebf2",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Вибачте, сталася помилка 😔. Спробуйте ще раз або напишіть щось інше.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        496
+      ],
+      "id": "6b25805e-ba6a-42fe-8839-45311ddc615d",
+      "name": "Error Message",
+      "webhookId": "34636c79-f069-4a57-8ae8-eba0df8d3c25",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "Привіт! 👋 Я твій AI-асистент на базі Claude. Просто напиши мені щось, і я відповім. Команди: /help — список команд",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        -336
+      ],
+      "id": "30f51cad-2026-439d-85f3-f02078eb12de",
+      "name": "Start",
+      "webhookId": "daa3b723-2a9b-40dd-8495-4bb212a9d6c0",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=📋 Команди:\n\n🤖 Чат з AI: Просто напиши повідомлення — я відповім через Claude AI\n\n🎨 Генерація зображень:\n\n/image <опис> — згенерувати зображення\nПриклад: /image cute cat in red hat\n\n⚙️ Інше:\n\n/start — почати спілкування\n/help — ця підказка\n/reset — очистити історію розмови\n\n💡 Генерація зображення займає ~20-30 секунд'",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        -176
+      ],
+      "id": "3138d0bb-ad19-434c-89ac-63d59cf9e015",
+      "name": "Help",
+      "webhookId": "daa3b723-2a9b-40dd-8495-4bb212a9d6c0",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $input.first().json.message.chat.id;\nconst staticData = $getWorkflowStaticData('global');\n\n// Видаляємо історію\ndelete staticData[`history_${chatId}`];\n\nreturn [{\n  json: {\n    chatId: parseInt(chatId),\n    message: \"✅ Історію розмови очищено. Почнемо спочатку!\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "ac6aaeed-09e2-4d0f-93b2-beddb7429b9d",
+      "name": "Code (Reset)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        -16
+      ],
+      "id": "c0c63037-d050-4ea3-b36e-e91177b2acb4",
+      "name": "Send (Reset)",
+      "webhookId": "bbeb2210-3f7d-4c41-af16-c93947eab2c8",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $input.first().json.message.chat.id;\nconst staticData = $getWorkflowStaticData('global');\nconst history = staticData[`history_${chatId}`] || [];\n\nreturn [{\n  json: {\n    model: \"claude-haiku-4-5-20251001\",\n    max_tokens: 300,\n    system: \"You are a helpful Telegram assistant. Respond in Ukrainian. Be concise.\",\n    messages: history\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        320
+      ],
+      "id": "f63c1633-7c1e-4ef1-8888-6d577c752ac6",
+      "name": "Code (history)"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        240
+      ],
+      "id": "559374c6-215d-4eeb-8348-765bab2956bb",
+      "name": "Wait",
+      "webhookId": "e2b37afb-0c5e-4bd2-a60a-beb894430142"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.chatId }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "=✅ Згенеровано!\n\nПромпт: {{ $('Extract Image Prompt').first().json.prompt }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        320
+      ],
+      "id": "b52c5995-cdfc-4269-afbd-d36cfccd5389",
+      "name": "Send a photo message",
+      "webhookId": "d7797d06-d508-4fb0-b9ef-1af0b6c83e4d",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fullText = $input.first().json.message.text;\nconst chatId = $input.first().json.message.chat.id;\n\nconst prompt = fullText.replace('/image', '').trim();\n\nif (!prompt) {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: \"❌ Використання: /image опис зображення\"\n    }\n  }];\n}\n\nconst workflow = {\n  \"prompt\": {\n    \"9\": {\n      \"inputs\": { \"filename_prefix\": \"z-image-turbo\", \"images\": [\"65\", 0] },\n      \"class_type\": \"SaveImage\"\n    },\n    \"62\": {\n      \"inputs\": { \"clip_name\": \"qwen_3_4b.safetensors\", \"type\": \"lumina2\", \"device\": \"default\" },\n      \"class_type\": \"CLIPLoader\"\n    },\n    \"63\": {\n      \"inputs\": { \"vae_name\": \"ae.safetensors\" },\n      \"class_type\": \"VAELoader\"\n    },\n    \"64\": {\n      \"inputs\": { \"conditioning\": [\"67\", 0] },\n      \"class_type\": \"ConditioningZeroOut\"\n    },\n    \"65\": {\n      \"inputs\": { \"samples\": [\"70\", 0], \"vae\": [\"63\", 0] },\n      \"class_type\": \"VAEDecode\"\n    },\n    \"66\": {\n      \"inputs\": { \"unet_name\": \"z_image_turbo_bf16.safetensors\", \"weight_dtype\": \"default\" },\n      \"class_type\": \"UNETLoader\"\n    },\n    \"67\": {\n      \"inputs\": { \"text\": prompt, \"clip\": [\"62\", 0] },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"68\": {\n      \"inputs\": { \"width\": 1024, \"height\": 1024, \"batch_size\": 1 },\n      \"class_type\": \"EmptySD3LatentImage\"\n    },\n    \"69\": {\n      \"inputs\": { \"shift\": 3, \"model\": [\"66\", 0] },\n      \"class_type\": \"ModelSamplingAuraFlow\"\n    },\n    \"70\": {\n      \"inputs\": {\n        \"seed\": Math.floor(Math.random() * 999999999999999),\n        \"steps\": 8,\n        \"cfg\": 1,\n        \"sampler_name\": \"res_multistep\",\n        \"scheduler\": \"simple\",\n        \"denoise\": 1,\n        \"model\": [\"69\", 0],\n        \"positive\": [\"67\", 0],\n        \"negative\": [\"64\", 0],\n        \"latent_image\": [\"68\", 0]\n      },\n      \"class_type\": \"KSampler\"\n    }\n  }\n};\n\nreturn [{\n  json: {\n    prompt: prompt,\n    chatId: chatId,\n    workflow: workflow\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        144
+      ],
+      "id": "a3e33ada-45b8-4e4c-a8d6-f56f25a3add9",
+      "name": "Extract Image Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qg7k0l0pzm9i3c-8188.proxy.runpod.net/prompt",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\"prompt\": $('Extract Image Prompt').first().json.workflow.prompt}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        256,
+        144
+      ],
+      "id": "2bf5a577-f7d4-4140-afab-0d3739032200",
+      "name": "ComfyUI Generate",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://qg7k0l0pzm9i3c-8188.proxy.runpod.net/history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        240
+      ],
+      "id": "f59d5d85-6868-4d68-a755-49491366ba6f",
+      "name": "Get ComfyUI History",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const promptId = $('ComfyUI Generate').first().json.prompt_id;\nconst historyData = $input.first().json;\nconst chatId = $('Extract Image Prompt').first().json.chatId;\n\n// Перевірка чи є дані\nif (!historyData || !historyData[promptId]) {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: \"❌ Помилка генерації. Спробуйте ще раз через хвилину.\"\n    }\n  }];\n}\n\nconst promptData = historyData[promptId];\n\n// Перевірка чи генерація завершена\nif (!promptData.outputs) {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: \"⏳ Генерація ще не завершена. Спробуйте через 30 секунд.\"\n    }\n  }];\n}\n\n// Витягуємо filename\nconst output = promptData.outputs;\nconst imageNode = Object.values(output).find(node => node.images);\n\nif (!imageNode || !imageNode.images || !imageNode.images[0]) {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: \"❌ Зображення не знайдено. Спробуйте ще раз.\"\n    }\n  }];\n}\n\nconst filename = imageNode.images[0].filename;\n\nreturn [{\n  json: {\n    error: false,\n    filename: filename,\n    chatId: chatId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "7a1c2b6c-6039-4159-afd9-879d7a86d0d8",
+      "name": "Extract Filename"
+    },
+    {
+      "parameters": {
+        "url": "=https://qg7k0l0pzm9i3c-8188.proxy.runpod.net/view?filename={{ $json.filename }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1616,
+        320
+      ],
+      "id": "ceee177f-7dd8-4aca-8448-4af1be090916",
+      "name": "Download Image",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d7005074-95e6-47c0-83da-5cbeccd02e87",
+              "leftValue": "={{ $json.prompt_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        144
+      ],
+      "id": "b188e2fd-980a-4cb5-ace1-93c3ce2ab3f2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Image Prompt').first().json.chatId }}",
+        "text": "❌ Сервіс генерації тимчасово недоступний.\nСпробуйте пізніше.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        32
+      ],
+      "id": "1c442e7c-d663-4a9b-a908-728aa2ce18a6",
+      "name": "Send IF Generation is OFF",
+      "webhookId": "da67d9a8-1192-45f4-9b00-855e28e8064a",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d7005074-95e6-47c0-83da-5cbeccd02e87",
+              "leftValue": "=={{ $json.error }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1424,
+        240
+      ],
+      "id": "5351644a-5096-4279-8021-5bf0c71499e6",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "=={{ $json.chatId }}",
+        "text": "=={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1616,
+        112
+      ],
+      "id": "8e3093e0-b115-453f-a2c6-4cabf49fc548",
+      "name": "Send IF Generation is OFF1",
+      "webhookId": "da67d9a8-1192-45f4-9b00-855e28e8064a",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "397087078",
+        "text": "⏳ Генерую зображення...\nЦе займе ~20-30 секунд.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        144
+      ],
+      "id": "8948edd8-0776-4581-a954-b160027f5708",
+      "name": "Send Message1",
+      "webhookId": "e696977b-4064-4f05-8ec4-dd6060b5ebf2",
+      "credentials": {
+        "telegramApi": {
+          "id": "FoFiD5vtEz7vQ4iu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Зберігаємо chatId для всіх випадків\nreturn [{\n  json: {\n    ...data,\n    chatId: $('Extract Image Prompt').first().json.chatId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        144
+      ],
+      "id": "4dd45b5b-6da2-42cd-b333-1ca2b248c257",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code (Save ChatID)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Code": {
+      "main": [
+        [
+          {
+            "node": "Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Save ChatID)": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Help",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code (Reset)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code (history)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message": {
+      "main": [
+        []
+      ]
+    },
+    "Error Message": {
+      "main": [
+        []
+      ]
+    },
+    "Start": {
+      "main": [
+        []
+      ]
+    },
+    "Code (Reset)": {
+      "main": [
+        [
+          {
+            "node": "Send (Reset)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (history)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get ComfyUI History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Send Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ComfyUI Generate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get ComfyUI History": {
+      "main": [
+        [
+          {
+            "node": "Extract Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Filename": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send IF Generation is OFF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send IF Generation is OFF1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message1": {
+      "main": [
+        [
+          {
+            "node": "ComfyUI Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4169c771-e78a-4894-a3e5-65f7ab455af0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "12677fde5b72ca52d454e3a9fa9dca16574aa17c033dafd30b3fe91ece04035c"
+  },
+  "nodeGroups": [],
+  "id": "b0WqYDVSLR17aE2h",
+  "tags": []
+}
