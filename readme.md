@@ -1,3 +1,5 @@
+View Demo video and project presentation on behance: https://www.behance.net/gallery/256126063/Telegram-AI-Bot-with-Image-Generation-via-n8n-ComfyUI
+
 # 🤖 AI Image Bot — Telegram + ComfyUI + n8n
 > Telegram bot for AI image generation powered by ComfyUI, orchestrated through n8n workflows with conversational AI capabilities.
 ![Project Status](https://img.shields.io/badge/status-completed-success)
